@@ -304,12 +304,14 @@ discord_new_permission_override(JsonObject *json)
 }
 
 static DiscordChannel *
-discord_new_channel(JsonObject *json)
+discord_new_channel(JsonObject *json, gchar *prefix)
 {
 	DiscordChannel *channel = g_new0(DiscordChannel, 1);
 
+	gchar *name = g_strdup_printf("%s.%s", prefix, g_strdup(json_object_get_string_member(json, "name")));
+
 	channel->id = to_int(json_object_get_string_member(json, "id"));
-	channel->name = g_strdup(json_object_get_string_member(json, "name"));
+	channel->name = name;
 	channel->topic = g_strdup(json_object_get_string_member(json, "topic"));
 	channel->position = json_object_get_int_member(json, "position");
 	channel->type = json_object_get_int_member(json, "type");
@@ -444,7 +446,7 @@ discord_update_status(DiscordUser *user, JsonObject *json)
 static DiscordChannel *
 discord_add_channel(DiscordGuild *guild, JsonObject *json, guint64 guild_id)
 {
-	DiscordChannel *channel = discord_new_channel(json);
+	DiscordChannel *channel = discord_new_channel(json, guild->name);
 	channel->guild_id = guild_id;
 	g_hash_table_replace_int64(guild->channels, channel->id, channel);
 	return channel;
@@ -2256,7 +2258,7 @@ discord_add_group_dms_to_blist(DiscordAccount *da)
 static void
 discord_got_group_dm(DiscordAccount *da, JsonObject *data)
 {
-	DiscordChannel *channel = discord_new_channel(data);
+	DiscordChannel *channel = discord_new_channel(data, "");
 	JsonArray *recipients = json_object_get_array_member(data, "recipients");
 
 	for (int i = json_array_get_length(recipients) - 1; i >= 0; i--) {
